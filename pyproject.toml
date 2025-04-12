@@ -1,0 +1,16 @@
+[tool.poetry]
+authors = ["laricko <ttttmmm6432@gmail.com>"]
+readme = "README.md"
+package-mode = false
+        
+[tool.poetry.dependencies]
+python = "3.12.2"
+pydantic = "^2.11.3"
+sqlalchemy = "^2.0.40"
+pydantic-settings = "^2.8.1"
+psycopg2 = "^2.9.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

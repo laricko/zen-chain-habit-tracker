@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: zen-chain-db
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - path: .env.example
+        required: true
+      - path: .env
+        required: false
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
