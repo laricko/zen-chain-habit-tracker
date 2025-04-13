@@ -1,7 +1,7 @@
 from enum import StrEnum, auto
 from uuid import UUID
 
-from pydantic import BaseModel
+from .base import Base
 
 
 class HabitFrequency(StrEnum):
@@ -10,8 +10,7 @@ class HabitFrequency(StrEnum):
     monthly = auto()
 
 
-class Habit(BaseModel):
-    id: UUID
+class Habit(Base):
     user_id: UUID
     title: str
     goal: int

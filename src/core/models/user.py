@@ -1,8 +1,5 @@
-from uuid import UUID
-
-from pydantic import BaseModel
+from .base import Base
 
 
-class User(BaseModel):
-    id: UUID
+class User(Base):
     telegram_chat_id: int
