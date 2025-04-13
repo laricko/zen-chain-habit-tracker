@@ -1,10 +1,8 @@
 from uuid import UUID
 
-from core import exceptions
-from core.models.habit import Habit
-from core.models.user import User
-from core.schema.habit import CreateHabitDTO, HabitOutDTO, ListOfHabits
-from core.utils import crud
+from app import exceptions
+from app.schema.habit import CreateHabitDTO, HabitOutDTO, ListOfHabits
+from app.utils import crud
 
 
 def create_habit(data: CreateHabitDTO) -> HabitOutDTO:

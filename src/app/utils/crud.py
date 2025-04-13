@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-import core.db as db_models
+import app.db as db_models
 
 from .db import engine
 

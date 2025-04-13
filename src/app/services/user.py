@@ -1,6 +1,5 @@
-from core.models.user import User
-from core.schema.user import CreateUserDTO, UserOutDTO
-from core.utils import crud
+from app.schema.user import CreateUserDTO, UserOutDTO
+from app.utils import crud
 
 
 def create_user(data: CreateUserDTO) -> UserOutDTO:

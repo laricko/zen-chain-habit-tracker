@@ -2,8 +2,8 @@ import logging
 
 from sqlalchemy import create_engine, text
 
-from core.config import config
-from core.db.base import Base
+from app.config import config
+from app.db.base import Base
 
 logger = logging.getLogger()
 engine = create_engine(config.pg_dsn)

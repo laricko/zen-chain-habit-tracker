@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from core.models.habit import HabitFrequency
+from app.models.habit import HabitFrequency
 
 
 class CreateHabitDTO(BaseModel):
