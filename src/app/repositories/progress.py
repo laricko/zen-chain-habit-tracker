@@ -11,9 +11,14 @@ class ProgressRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def bulk_create(self, progresses: list[Progress]) -> list[Progress]:
+    def bulk_create(self, progresses: list[Progress]) -> None:
         self.session.bulk_save_objects(progresses)
         self.session.flush()
+
+    def create(self, progress: Progress) -> Progress:
+        self.session.add(progress)
+        self.session.flush()
+        return progress
 
     def get_all_users_last_progresses(self) -> list[Progress]:
         stmt = (

@@ -3,8 +3,8 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app import exceptions
-from app.db import Habit
-from app.repositories import HabitRepository, UserRepository
+from app.db import Habit, Progress
+from app.repositories import HabitRepository, ProgressRepository, UserRepository
 from app.schema.habit import CreateHabitDTO, HabitOutDTO, ListOfHabits
 from app.utils.db import with_session
 
@@ -22,6 +22,16 @@ def create_habit(data: CreateHabitDTO, session: Session) -> HabitOutDTO:
 
     habit = Habit(**data.model_dump())
     habit = habit_repository.create(habit=habit)
+
+    progress_repository = ProgressRepository(session=session)
+    progress_repository.create(
+        Progress(
+            user_id=habit.user_id,
+            habit_id=habit.id,
+            current=0,
+        )
+    )
+
     return HabitOutDTO(**habit.__dict__)
 
 
