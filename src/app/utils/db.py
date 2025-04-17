@@ -1,12 +1,14 @@
 import logging
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 from app.config import config
-from app.db.base import Base
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 engine = create_engine(config.pg_dsn)
+SessionLocal = sessionmaker(engine)
 
 
 def check_db_connection():
@@ -18,7 +20,21 @@ def check_db_connection():
         logger.exception(f"Database connection failed: {e}")
 
 
-def validate_database():
-    Base.metadata.create_all(engine)
+@contextmanager
+def get_session():
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
-    check_db_connection()
+
+def with_session(func):
+    def wrapper(*args, **kwargs):
+        with get_session() as session:
+            return func(*args, session=session, **kwargs)
+    return wrapper

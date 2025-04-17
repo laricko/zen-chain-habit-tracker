@@ -1,8 +1,13 @@
+from enum import StrEnum, auto
 from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.models.habit import HabitFrequency
+
+class HabitFrequency(StrEnum):
+    daily = auto()
+    weekly = auto()
+    monthly = auto()
 
 
 class CreateHabitDTO(BaseModel):

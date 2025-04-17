@@ -1,28 +1,36 @@
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from app import exceptions
+from app.db import Habit
+from app.repositories import HabitRepository, UserRepository
 from app.schema.habit import CreateHabitDTO, HabitOutDTO, ListOfHabits
-from app.utils import crud
+from app.utils.db import with_session
 
 
-def create_habit(data: CreateHabitDTO) -> HabitOutDTO:
+@with_session
+def create_habit(data: CreateHabitDTO, session: Session) -> HabitOutDTO:
     user_id = data.user_id
-    user = crud.get_by_id(klass=User, id=user_id)
-    if not user:
+    user_repository = UserRepository(session=session)
+    if not user_repository.get_by_id(id=user_id):
         raise exceptions.EntityNotFound(f"User with {user_id} not found")
 
-    if crud.get_by_kwargs(klass=Habit, title=data.title, user_id=user_id):
+    habit_repository = HabitRepository(session=session)
+    if habit_repository.get_by_title_and_user_id(title=data.title, user_id=user_id):
         raise exceptions.UniqueConstraintViolation(f"User {user_id} already has a {data.title} habit")
 
     habit = Habit(**data.model_dump())
-    crud.create(habit)
-    return HabitOutDTO(**habit.model_dump())
+    habit = habit_repository.create(habit=habit)
+    return HabitOutDTO(**habit.__dict__)
 
 
-def get_habits_by_user_id(user_id: UUID) -> ListOfHabits:
-    user = crud.get_by_id(klass=User, id=user_id)
-    if not user:
+@with_session
+def get_habits_by_user_id(user_id: UUID, session: Session) -> ListOfHabits:
+    user_repository = UserRepository(session=session)
+    if not user_repository.get_by_id(id=user_id):
         raise exceptions.EntityNotFound(f"User with {user_id} not found")
 
-    habits = crud.get_by_kwargs(klass=Habit, user_id=user_id)
-    return ListOfHabits(habits=[HabitOutDTO(**habit.model_dump()) for habit in habits])
+    habit_repository = HabitRepository(session=session)
+    habits = habit_repository.get_by_user_id(user_id=user_id)
+    return ListOfHabits(habits=[HabitOutDTO(**habit.__dict__) for habit in habits])
