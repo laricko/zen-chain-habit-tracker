@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.db import Progress
 from app.exceptions import EntityNotFound
 from app.repositories import HabitRepository, ProgressRepository, UserRepository
+from app.schema.habit import HabitOutDTO
 from app.schema.progress import (
     IncrementProgressDTO,
     ListOfProgressOutDTO,
@@ -38,7 +39,7 @@ def create_progress_for_all_users(session: Session) -> None:
         last_date = last_progresses_habit_created_date_map.get(habit.id)
         if _should_create_progress(habit, last_date):
             progresses_to_create.append(
-                Progress(user_id=habit.user_id, habit_id=habit.id, current=0)
+                Progress(user_id=habit.user_id, habit_id=habit.id, current=0, goal=habit.goal)
             )
 
     progress_repository.bulk_create(progresses=progresses_to_create)
@@ -72,15 +73,20 @@ def update_progress(data: UpdateProgressDTO, session: Session) -> ProgressOutDTO
 
 
 @with_session
-def get_progress_by_user_id(user_id: UUID, session: Session) -> ListOfProgressOutDTO:
+def get_last_progress_by_user_id(user_id: UUID, session: Session) -> ListOfProgressOutDTO:
     progress_repository = ProgressRepository(session=session)
     user_repository = UserRepository(session=session)
 
     if not user_repository.get_by_id(id=user_id):
         raise EntityNotFound(f"User with {user_id} not found")
 
-    progresses = progress_repository.get_by_user_id(user_id=user_id)
-    return ListOfProgressOutDTO(progresses=[ProgressOutDTO(**progress.__dict__) for progress in progresses])
+    progresses_habits = progress_repository.get_last_by_user_id(user_id=user_id)
+    progresses = [
+        ProgressOutDTO(**progress.__dict__, habit=HabitOutDTO(**habit.__dict__))
+        for progress, habit in progresses_habits
+    ]
+
+    return ListOfProgressOutDTO(progresses=progresses)
 
 
 def _should_create_progress(habit, last_date: date | None) -> bool:

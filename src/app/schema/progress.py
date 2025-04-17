@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from .habit import HabitOutDTO
+
 
 class IncrementProgressDTO(BaseModel):
     id: UUID
@@ -17,7 +19,7 @@ class UpdateProgressDTO(BaseModel):
 class ProgressOutDTO(BaseModel):
     id: UUID
     user_id: UUID
-    habit_id: UUID
+    habit: HabitOutDTO
     current: int
     updated_at: datetime
     created_date: date

@@ -6,6 +6,7 @@ class Config(BaseSettings):
     postgres_user: str
     postgres_password: str
     postgres_db: str
+    telegram_bot_token: str
 
     @property
     def pg_dsn(self) -> PostgresDsn:

@@ -15,6 +15,7 @@ class Progress(Base):
     current: Mapped[int]
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
     created_date: Mapped[date] = mapped_column(server_default=func.now())
+    goal: Mapped[int]
 
     __table_args__ = (
         UniqueConstraint("habit_id", "created_date", name="uq_user_created_date"),
