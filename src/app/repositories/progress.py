@@ -37,6 +37,15 @@ class ProgressRepository:
     def get_by_id(self, id: UUID) -> Progress | None:
         return self.session.get(Progress, id)
 
+    def get_by_habit_id(self, id: UUID) -> list[Progress]:
+        stmt = (
+            select(Progress)
+            .where(Progress.habit_id == id)
+            .order_by(desc(Progress.created_date))
+            .limit(30)
+        )
+        return self.session.execute(stmt).scalars().all()
+
     def get_last_by_user_id(self, user_id: UUID) -> list[tuple[Progress, Habit]]:
         habit_alias = aliased(Habit)
         progress_alias = aliased(Progress)

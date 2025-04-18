@@ -16,15 +16,26 @@ class UpdateProgressDTO(BaseModel):
     current: int
 
 
-class ProgressOutDTO(BaseModel):
+class ProgresOutDTO(BaseModel):
     id: UUID
     user_id: UUID
-    habit: HabitOutDTO
+    habit_id: UUID
     current: int
     updated_at: datetime
     created_date: date
     goal: int
 
 
-class ListOfProgressOutDTO(BaseModel):
-    progresses: list[ProgressOutDTO]
+class ProgressWithHabitOutDTO(ProgresOutDTO):
+    habit: HabitOutDTO
+
+
+class ListOfProgressesOutDTO(BaseModel):
+    progresses: list[ProgresOutDTO]
+    total_of_currents: int
+    total_count: int
+
+
+class ListOfProgressesWithHabitOutDTO(BaseModel):
+    progresses: list[ProgressWithHabitOutDTO]
+    habit_titles: list[str]

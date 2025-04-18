@@ -7,13 +7,8 @@ from sqlalchemy.orm import Session
 from app.db import Progress
 from app.exceptions import EntityNotFound
 from app.repositories import HabitRepository, ProgressRepository, UserRepository
-from app.schema.habit import HabitOutDTO
-from app.schema.progress import (
-    IncrementProgressDTO,
-    ListOfProgressOutDTO,
-    ProgressOutDTO,
-    UpdateProgressDTO,
-)
+from app.schemas import progress as progress_schemas
+from app.schemas.habit import HabitOutDTO
 from app.utils.db import with_session
 
 logger = logging.getLogger(__name__)
@@ -47,7 +42,7 @@ def create_progress_for_all_users(session: Session) -> None:
 
 
 @with_session
-def increment_progress(data: IncrementProgressDTO, session: Session) -> ProgressOutDTO:
+def increment_progress(data: progress_schemas.IncrementProgressDTO, session: Session) -> progress_schemas.ProgresOutDTO:
     progress_repository = ProgressRepository(session=session)
 
     progress = progress_repository.get_by_id(id=data.id)
@@ -56,11 +51,11 @@ def increment_progress(data: IncrementProgressDTO, session: Session) -> Progress
 
     progress.current += data.increment_by
     progress = progress_repository.update(progress=progress)
-    return ProgressOutDTO(progress.__dict__)
+    return progress_repository.ProgressWithHabitOutDTO(progress.__dict__)
 
 
 @with_session
-def update_progress(data: UpdateProgressDTO, session: Session) -> ProgressOutDTO:
+def update_progress(data: progress_schemas.UpdateProgressDTO, session: Session) -> progress_schemas.ProgresOutDTO:
     progress_repository = ProgressRepository(session=session)
 
     progress = progress_repository.get_by_id(id=data.id)
@@ -69,11 +64,11 @@ def update_progress(data: UpdateProgressDTO, session: Session) -> ProgressOutDTO
 
     progress.current = data.current
     progress = progress_repository.update(progress=progress)
-    return ProgressOutDTO(progress.__dict__)
+    return progress_schemas.ProgresOutDTO(progress.__dict__)
 
 
 @with_session
-def get_last_progress_by_user_id(user_id: UUID, session: Session) -> ListOfProgressOutDTO:
+def get_last_progress_by_user_id(user_id: UUID, session: Session) -> progress_schemas.ListOfProgressesWithHabitOutDTO:
     progress_repository = ProgressRepository(session=session)
     user_repository = UserRepository(session=session)
 
@@ -81,12 +76,43 @@ def get_last_progress_by_user_id(user_id: UUID, session: Session) -> ListOfProgr
         raise EntityNotFound(f"User with {user_id} not found")
 
     progresses_habits = progress_repository.get_last_by_user_id(user_id=user_id)
-    progresses = [
-        ProgressOutDTO(**progress.__dict__, habit=HabitOutDTO(**habit.__dict__))
-        for progress, habit in progresses_habits
-    ]
+    progresses = []
+    habit_titles = set()
 
-    return ListOfProgressOutDTO(progresses=progresses)
+    for progress, habit in progresses_habits:
+        progresses.append(
+            progress_schemas.ProgressWithHabitOutDTO(**progress.__dict__, habit=HabitOutDTO(**habit.__dict__))
+        )
+        habit_titles.add(habit.title.capitalize())
+
+    return progress_schemas.ListOfProgressesWithHabitOutDTO(progresses=progresses, habit_titles=habit_titles)
+
+
+@with_session
+def get_progresses_by_habit_id(habit_id: UUID, session: Session) -> progress_schemas.ListOfProgressesOutDTO:
+    habit_repository = HabitRepository(session=session)
+    habit = habit_repository.get_by_id(id=habit_id)
+
+    if not habit:
+        raise EntityNotFound(f"Habit with {habit_id} id not found")
+
+    progress_repository = ProgressRepository(session=session)
+    progresses = progress_repository.get_by_habit_id(id=habit_id)
+
+    total_count = 0
+    total_of_currents = 0
+    list_progresses = []
+
+    for progress in progresses:
+        list_progresses.append(progress_schemas.ProgresOutDTO(**progress.__dict__))
+        total_count += 1
+        total_of_currents += progress.current
+
+    return progress_schemas.ListOfProgressesOutDTO(
+        progresses=list_progresses,
+        total_of_currents=total_of_currents,
+        total_count=total_count
+    )
 
 
 def _should_create_progress(habit, last_date: date | None) -> bool:

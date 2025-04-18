@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db import User
 from app.exceptions import EntityNotFound, UniqueConstraintViolation
 from app.repositories import UserRepository
-from app.schema.user import CreateUserDTO, UserOutDTO
+from app.schemas.user import CreateUserDTO, UserOutDTO
 from app.utils.db import with_session
 
 
@@ -19,7 +19,7 @@ def create_user(data: CreateUserDTO, session: Session) -> UserOutDTO:
 
 
 @with_session
-def get_by_telegram_chat_id(telegram_chat_id: int, session: Session) -> UserOutDTO:
+def get_user_by_telegram_chat_id(telegram_chat_id: int, session: Session) -> UserOutDTO:
     user_repository = UserRepository(session=session)
     user = user_repository.get_by_telegram_chat_id(telegram_chat_id=telegram_chat_id)
 
