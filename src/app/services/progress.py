@@ -51,7 +51,7 @@ def increment_progress(data: progress_schemas.IncrementProgressDTO, session: Ses
 
     progress.current += data.increment_by
     progress = progress_repository.update(progress=progress)
-    return progress_repository.ProgressWithHabitOutDTO(progress.__dict__)
+    return progress_schemas.ProgresOutDTO(**progress.__dict__)
 
 
 @with_session
@@ -64,7 +64,7 @@ def update_progress(data: progress_schemas.UpdateProgressDTO, session: Session) 
 
     progress.current = data.current
     progress = progress_repository.update(progress=progress)
-    return progress_schemas.ProgresOutDTO(progress.__dict__)
+    return progress_schemas.ProgresOutDTO(**progress.__dict__)
 
 
 @with_session

@@ -31,8 +31,10 @@ class ProgressRepository:
         return self.session.execute(stmt).scalars().all()
 
     def update(self, progress: Progress) -> Progress:
-        stmt = update(Progress).where(Progress.id == progress.id).values(**progress.__dict__).returning(Progress)
-        return self.session.execute(stmt).one()
+        progress_data = progress.__dict__.copy()
+        progress_data.pop("_sa_instance_state", None)
+        stmt = update(Progress).where(Progress.id == progress.id).values(**progress_data).returning(Progress)
+        return self.session.execute(stmt).scalar_one()
 
     def get_by_id(self, id: UUID) -> Progress | None:
         return self.session.get(Progress, id)

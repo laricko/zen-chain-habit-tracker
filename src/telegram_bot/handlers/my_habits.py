@@ -14,7 +14,10 @@ async def my_habits(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     habits: ListOfHabits = get_habits_by_user_id(user_id=user.id)
 
     if not habits.habits:
-        await update.message.reply_text("You have no habits yet. Use /add or button to create one.")
+        await update.message.reply_text(
+            "_You have no habits yet\\. Use /add or button to create one\\._", 
+            parse_mode="MarkdownV2"
+        )
         return
 
     message = "📋 *Your Habits:*\n\n"

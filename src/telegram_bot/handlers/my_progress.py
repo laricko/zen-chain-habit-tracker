@@ -1,6 +1,6 @@
-from datetime import date, timedelta
+from datetime import date
 
-from telegram import ReplyKeyboardMarkup, Update
+from telegram import KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -9,104 +9,179 @@ from telegram.ext import (
     filters,
 )
 
-from app.schemas.progress import ListOfProgressesOutDTO
+from app.schemas.progress import (
+    IncrementProgressDTO,
+    ListOfProgressesOutDTO,
+    UpdateProgressDTO,
+)
 from app.services.habit import get_habit_by_title_and_user_id
 from app.services.progress import (
     get_last_progress_by_user_id,
     get_progresses_by_habit_id,
+    increment_progress,
+    update_progress,
 )
 from app.services.user import get_user_by_telegram_chat_id
 from telegram_bot.consts import BTN_PROGRESS, DEFAULT_MARKUP
 
-SELECT_HABIT, EDIT_TODAY = range(2)
+HABIT_DETAIL, EDIT_TODAY, CHOOSE_EDIT_ACTION, INCREMENT_VALUE, SET_VALUE = range(5)
+EDIT_TODAY_BTN = "Edit Today"
+INCREMENT_BY_BTN = "➕ Increment by"
+SET_NEW_VALUE_BTN = "✏️ Set a value"
+BACK_BTN = "Back"
 
 
-async def select_habit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def my_progress(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     telegram_user = update.effective_user
     user = get_user_by_telegram_chat_id(telegram_chat_id=telegram_user.id)
-
-    progresses_dto = get_last_progress_by_user_id(user_id=user.id)
-    list_progresses = progresses_dto.progresses
     context.user_data["user"] = user
 
-    if progresses_dto.progresses:
-        text = "📝 *Your Last Habit Progresses Overview:*\n\n" + "\n".join(
-            f"\\- *{p.habit.title.capitalize()}* \\({p.habit.frequency}\\): {p.current}/{p.goal} \\- {p.created_date.strftime('%d\\.%m')}"
-            for p in list_progresses
+    progresses_dto = get_last_progress_by_user_id(user_id=user.id)
+    if not progresses_dto.progresses:
+        await update.message.reply_text(
+            "_You have no progress records yet\\._",
+            reply_markup=DEFAULT_MARKUP,
+            parse_mode="MarkdownV2"
         )
-        text += "\n\n*Choose a habit to get detailed data\\.*"
-        
-        habit_titles = [[habit_title] for habit_title in progresses_dto.habit_titles]
-        reply_markup = ReplyKeyboardMarkup(habit_titles, resize_keyboard=True)
-    else:
-        text = "_You have no progress records yet\\._"
-        reply_markup = DEFAULT_MARKUP
+        return ConversationHandler.END
 
-    await update.message.reply_text(text=text, reply_markup=reply_markup, parse_mode="MarkdownV2")
-    return SELECT_HABIT
+    text = "📝 *Your Last Habit Progresses Overview:*\n\n" + "\n".join(
+        f"\\- *{p.habit.title.capitalize()}* \\({p.habit.frequency}\\): {p.current}/{p.goal} \\- {p.created_date.strftime('%d\\.%m')}"
+        for p in progresses_dto.progresses
+    )
+    text += "\n\n*Choose a habit to get detailed data\\.*"
+
+    buttons = [[title] for title in progresses_dto.habit_titles]
+    buttons += [[BACK_BTN]]
+    await update.message.reply_text(
+        text=text,
+        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
+        parse_mode="MarkdownV2"
+    )
+    return HABIT_DETAIL
 
 
 async def show_habit_details(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     selected_title = update.message.text.strip()
-    user = context.user_data.get("user")
 
+    if selected_title == BACK_BTN:
+        await update.message.reply_text("What would you like to do today?", reply_markup=DEFAULT_MARKUP)
+        return ConversationHandler.END
+
+    user = context.user_data["user"]
     habit = get_habit_by_title_and_user_id(user_id=user.id, title=selected_title)
     context.user_data["habit"] = habit
+    progresses_dto = get_progresses_by_habit_id(habit_id=habit.id)
+    current_progress = progresses_dto.progresses[0]
+    context.user_data["current_progress"] = current_progress
 
-    progresses_dto: ListOfProgressesOutDTO = get_progresses_by_habit_id(habit_id=habit.id)
-    today = progresses_dto.progresses[0]
-
-    text = f"📊 *{habit.title.capitalize()}* \\({habit.frequency}\\)\n"
-    text += "\n".join(
+    text = f"📊 *{habit.title.capitalize()}* \\({habit.frequency}\\)\n" + "\n".join(
         f"*{p.created_date.strftime('%d\\.%m')}* \\- {p.current}/{p.goal}"
         for p in progresses_dto.progresses
     )
     text += (
         f"\n\n\\- Total Records: *{progresses_dto.total_count}*\n"
         f"\\- Total Progress: *{progresses_dto.total_of_currents}*\n"
-        f"\\- Today's Progress: *{today.current} / {today.goal}*\n\n"
+        f"\\- Today's Progress: *{current_progress.current} / {current_progress.goal}*\n\n"
         f"_What would you like to do?_"
     )
 
-    reply_markup = ReplyKeyboardMarkup([["Edit Today"], ["Back"]], resize_keyboard=True)
-
-    await update.message.reply_text(text=text, reply_markup=reply_markup, parse_mode="MarkdownV2")
+    await update.message.reply_text(
+        text=text,
+        reply_markup=ReplyKeyboardMarkup([[EDIT_TODAY_BTN], [BACK_BTN]], resize_keyboard=True),
+        parse_mode="MarkdownV2"
+    )
     return EDIT_TODAY
 
 
 async def edit_today_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    habit = context.user_data.get("habit")
-    user = context.user_data.get("user")
+    current_progress = context.user_data["current_progress"]
+    today = current_progress.created_date.strftime('%d\\.%m')
 
-    if not habit or not user:
-        await update.message.reply_text("Something went wrong. Please try again.", reply_markup=DEFAULT_MARKUP)
-        return ConversationHandler.END
-
-    today = date.today()
-
-    text = (
-        f"✅ Updated *{habit.title.capitalize()}*\n"
-        f"Progress Today: *3 / {habit.goal}*\n\n"
-        f"_Keep it going!_"
+    await update.message.reply_text(
+        f"🛠 *Editing {context.user_data['habit'].title.capitalize()}* \\- *{today}*",
+        reply_markup=ReplyKeyboardMarkup(
+            [
+                [KeyboardButton(INCREMENT_BY_BTN)],
+                [KeyboardButton(SET_NEW_VALUE_BTN)],
+                [KeyboardButton(BACK_BTN)]
+            ],
+            resize_keyboard=True
+        ),
+        parse_mode="MarkdownV2"
     )
+    return CHOOSE_EDIT_ACTION
 
-    await update.message.reply_text(text=text, parse_mode="MarkdownV2", reply_markup=DEFAULT_MARKUP)
+
+async def ask_increment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("🔢 Enter how much to increment by:")
+    return INCREMENT_VALUE
+
+
+async def ask_set_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("✏️ Enter the new progress value:")
+    return SET_VALUE
+
+
+async def increment_value_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    value = update.message.text.strip()
+    try:
+        value = int(value)
+    except ValueError:
+        await update.message.reply_text("🚫 Please enter a valid positive number.")
+        return INCREMENT_VALUE
+
+    current_progress = context.user_data["current_progress"]
+    new_progress = increment_progress(data=IncrementProgressDTO(id=current_progress.id, increment_by=value))
+    await update.message.reply_text(f"✅ Progress incremented by {value}. Your current progress for today {new_progress.current}", reply_markup=DEFAULT_MARKUP)
+    return ConversationHandler.END
+
+
+async def set_value_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    value = update.message.text.strip()
+    try:
+        value = int(value)
+    except ValueError:
+        await update.message.reply_text("🚫 Please enter a valid positive number.")
+        return SET_VALUE
+
+    current_progress = context.user_data["current_progress"]
+    new_progress = update_progress(data=UpdateProgressDTO(id=current_progress.id, current=value))
+    await update.message.reply_text(f"✅ Progress set to {new_progress.current}.", reply_markup=DEFAULT_MARKUP)
+    return ConversationHandler.END
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("❌ Cancelled", reply_markup=DEFAULT_MARKUP)
     return ConversationHandler.END
 
 
 habit_update_conv = ConversationHandler(
     entry_points=[
-        MessageHandler(filters.Regex(f"^{BTN_PROGRESS[0]}$"), select_habit),
-        CommandHandler(BTN_PROGRESS[1], select_habit),
+        MessageHandler(filters.Regex(f"^{BTN_PROGRESS[0]}$"), my_progress),
+        CommandHandler(BTN_PROGRESS[1], my_progress),
     ],
     states={
-        SELECT_HABIT: [
+        HABIT_DETAIL: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, show_habit_details)
         ],
         EDIT_TODAY: [
-            MessageHandler(filters.Regex("^Edit Today$"), edit_today_handler),
-            MessageHandler(filters.Regex("^Back$"), select_habit)
+            MessageHandler(filters.Regex(f"^{EDIT_TODAY_BTN}$"), edit_today_handler),
+            MessageHandler(filters.Regex(f"^{BACK_BTN}$"), my_progress)
+        ],
+        CHOOSE_EDIT_ACTION: [
+            MessageHandler(filters.Regex(f"^{INCREMENT_BY_BTN}$"), ask_increment),
+            MessageHandler(filters.Regex(f"^{SET_NEW_VALUE_BTN}$"), ask_set_value),
+            MessageHandler(filters.Regex(f"^{BACK_BTN}$"), my_progress)
+        ],
+        INCREMENT_VALUE: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, increment_value_handler)
+        ],
+        SET_VALUE: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, set_value_handler)
         ],
     },
-    fallbacks=[],
+    fallbacks=[
+        CommandHandler("cancel", cancel)
+    ],
 )

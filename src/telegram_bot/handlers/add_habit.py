@@ -1,4 +1,4 @@
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -35,7 +35,8 @@ async def ask_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         await update.message.reply_text("⚠️ Please enter a valid number.")
         return GOAL
 
-    reply_markup = ReplyKeyboardMarkup([["daily", "weekly", "monthly"], ["/cancel"]], one_time_keyboard=True, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup([["daily", "weekly", "monthly"], ["/cancel"]],
+                                       one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text("📆 How often? Choose frequency:", reply_markup=reply_markup)
     return FREQUENCY
 
