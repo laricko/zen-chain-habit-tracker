@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.db import Habit
@@ -30,3 +30,7 @@ class HabitRepository:
     def get_all(self) -> list[Habit]:
         stmt = select(Habit)
         return self.session.execute(stmt).scalars().all()
+
+    def delete(self, id: UUID) -> None:
+        stmt = delete(Habit).where(Habit.id == id)
+        return self.session.execute(stmt)

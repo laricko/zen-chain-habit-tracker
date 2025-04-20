@@ -60,3 +60,15 @@ def get_habit_by_title_and_user_id(title: str, user_id: UUID, session: Session) 
         raise exceptions.EntityNotFound(f"User {user_id} has no {title} habit")
 
     return HabitOutDTO(**habit.__dict__)
+
+
+@with_session
+def delete_habit(id: UUID, session: Session) -> None:
+    habit_repository = HabitRepository(session=session)
+    habit = habit_repository.get_by_id(id=id)
+
+    if not habit:
+        raise exceptions.EntityNotFound(f"Habit with {id} id not found")
+    
+    habit_repository.delete(id=id)
+    return
