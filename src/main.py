@@ -1,6 +1,5 @@
 import logging
 
-from app.services.progress import create_progress_for_all_users
 from app.utils.db import check_db_connection
 from telegram_bot.main import create_app as create_telegram_app
 
@@ -12,5 +11,4 @@ if __name__ == "__main__":
     logger.info("Checking database's connection...")
     check_db_connection()
     logger.info("Starting telegram bot...")
-    create_progress_for_all_users()
     create_telegram_app()
