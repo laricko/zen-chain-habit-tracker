@@ -6,7 +6,7 @@ from telegram_bot.main import create_app as create_telegram_app
 
 class ExcludeHttpxFilter(logging.Filter):
     def filter(self, record):
-        return not record.name.startswith("httpx")
+        return not record.module.startswith("httpx")
 
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.INFO)
