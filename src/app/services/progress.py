@@ -38,7 +38,7 @@ def create_progress_for_all_users(session: Session) -> None:
             )
 
     progress_repository.bulk_create(progresses=progresses_to_create)
-    logger.info(f"Created {len(progresses_to_create)} progress records.")
+    logger.warning(f"Created {len(progresses_to_create)} progress records.")
 
 
 @with_session
