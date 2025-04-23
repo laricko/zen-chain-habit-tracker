@@ -10,7 +10,7 @@ from app.db.base import Base
 class Progress(Base):
     __tablename__ = "progress"
 
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
     habit_id: Mapped[UUID] = mapped_column(ForeignKey("habit.id", ondelete="CASCADE"))
     current: Mapped[int]
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now())

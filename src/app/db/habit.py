@@ -10,7 +10,7 @@ from app.db.base import Base
 class Habit(Base):
     __tablename__ = "habit"
 
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
     title: Mapped[str] = mapped_column(String(255))
     goal: Mapped[int]
     frequency: Mapped[str] = mapped_column(String(7))

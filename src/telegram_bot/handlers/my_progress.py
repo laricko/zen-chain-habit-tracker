@@ -148,7 +148,7 @@ async def set_value_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return SET_VALUE
 
     current_progress = context.user_data["current_progress"]
-    new_progress = update_progress(data=UpdateProgressDTO(id=current_progress.id, current=value))
+    new_progress = update_progress(id=current_progress.id ,data=UpdateProgressDTO(current=value))
     await update.message.reply_text(f"✅ Progress set to {new_progress.current}.", reply_markup=DEFAULT_MARKUP)
     return ConversationHandler.END
 

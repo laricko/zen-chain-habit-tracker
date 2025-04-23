@@ -8,7 +8,7 @@ def create_app():
     telegram_bot_token = config.telegram_bot_token
     app = ApplicationBuilder().token(telegram_bot_token).build()
 
-    app.add_handler(CommandHandler("start", handlers.start))
+    app.add_handler(handlers.start_conv)
 
     app.add_handler(
         MessageHandler(filters.TEXT & filters.Regex(f"^{consts.BTN_MY_HABITS[0]}$"), handlers.my_habits)

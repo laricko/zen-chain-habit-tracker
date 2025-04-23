@@ -12,7 +12,6 @@ class IncrementProgressDTO(BaseModel):
 
 
 class UpdateProgressDTO(BaseModel):
-    id: UUID
     current: int
 
 

@@ -55,12 +55,12 @@ def increment_progress(data: progress_schemas.IncrementProgressDTO, session: Ses
 
 
 @with_session
-def update_progress(data: progress_schemas.UpdateProgressDTO, session: Session) -> progress_schemas.ProgresOutDTO:
+def update_progress(id: UUID, data: progress_schemas.UpdateProgressDTO, session: Session) -> progress_schemas.ProgresOutDTO:
     progress_repository = ProgressRepository(session=session)
 
-    progress = progress_repository.get_by_id(id=data.id)
+    progress = progress_repository.get_by_id(id=id)
     if not progress:
-        raise EntityNotFound(f"Progress with {progress.id} not found")
+        raise EntityNotFound(f"Progress with {id} not found")
 
     progress.current = data.current
     progress = progress_repository.update(progress=progress)
