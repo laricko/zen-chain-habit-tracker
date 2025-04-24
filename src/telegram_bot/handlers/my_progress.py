@@ -71,7 +71,10 @@ async def show_habit_details(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         habit = get_habit_by_title_and_user_id(user_id=user.id, title=selected_title)
     except EntityNotFound:
-        await update.message.reply_text("🚫 Please choose a habit from list.", reply_markup=context.user_data["habit_buttons"])
+        await update.message.reply_text(
+            "🚫 Please choose a habit from list.", 
+            reply_markup=ReplyKeyboardMarkup(context.user_data["habit_buttons"], resize_keyboard=True)
+        )
         return HABIT_DETAIL
 
     context.user_data["habit"] = habit
