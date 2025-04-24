@@ -26,12 +26,12 @@ async def ask_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     telegram_user = update.effective_user
     user = get_user_by_telegram_chat_id(telegram_chat_id=telegram_user.id)
     context.user_data["user"] = user
+    reply_markup = ReplyKeyboardMarkup([["/cancel"]], resize_keyboard=True, one_time_keyboard=True)
 
     if get_habit_by_title_and_user_id(title=title, user_id=user.id):
         await update.message.reply_text("You already have this habit", reply_markup=reply_markup)
         return TITLE
 
-    reply_markup = ReplyKeyboardMarkup([["/cancel"]], resize_keyboard=True, one_time_keyboard=True)
     await update.message.reply_text("🎯 What is your goal (a number)?", reply_markup=reply_markup)
     return GOAL
 
