@@ -7,6 +7,7 @@ from telegram.ext import (
     filters,
 )
 
+from app.exceptions import EntityNotFound
 from app.schemas.habit import CreateHabitDTO, HabitFrequency
 from app.services.habit import create_habit, get_habit_by_title_and_user_id
 from app.services.user import get_user_by_telegram_chat_id
@@ -28,8 +29,13 @@ async def ask_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["user"] = user
     reply_markup = ReplyKeyboardMarkup([["/cancel"]], resize_keyboard=True, one_time_keyboard=True)
 
-    if get_habit_by_title_and_user_id(title=title, user_id=user.id):
-        await update.message.reply_text("You already have this habit", reply_markup=reply_markup)
+    try:
+        habit = get_habit_by_title_and_user_id(title=title, user_id=user.id)
+    except EntityNotFound:
+        habit = None
+
+    if habit:
+        await update.message.reply_text("You already have this habit. Choose different name.", reply_markup=reply_markup)
         return TITLE
 
     await update.message.reply_text("🎯 What is your goal (a number)?", reply_markup=reply_markup)
