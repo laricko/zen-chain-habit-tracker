@@ -3,15 +3,31 @@ services:
     image: postgres:17
     container_name: zen-chain-db
     restart: always
-    ports:
-      - "5432:5432"
     env_file:
       - path: .env.example
         required: true
       - path: .env
         required: false
+    expose:
+      - 5432
     volumes:
       - ./pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zen-chain-backend
+    restart: always
+    env_file:
+      - path: .env.example
+        required: true
+      - path: .env
+        required: false
+    depends_on:
+      - postgres
+    volumes:
+      - ./src:/app
 
 volumes:
   pgdata:

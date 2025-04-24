@@ -10,7 +10,7 @@ class Config(BaseSettings):
 
     @property
     def pg_dsn(self) -> PostgresDsn:
-        return f"postgresql://{self.postgres_user}:{self.postgres_password}@localhost:5432/{self.postgres_db}"
+        return f"postgresql://{self.postgres_user}:{self.postgres_password}@postgres:5432/{self.postgres_db}"
 
 
 config = Config()
