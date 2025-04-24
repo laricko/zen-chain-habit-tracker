@@ -33,7 +33,7 @@ RUN poetry install --no-root
 COPY src/ .
 
 # Set up cron to use environment variables from the container
-RUN echo "* * * * * . /etc/container_env.sh && cd /app && /usr/local/bin/python -c 'from app.services.progress import create_progress_for_all_users; create_progress_for_all_users()' >> /cron_logs.log 2>&1" > /etc/cron.d/create_progress \
+RUN echo "0 * * * * . /etc/container_env.sh && cd /app && /usr/local/bin/python -c 'from app.services.progress import create_progress_for_all_users; create_progress_for_all_users()' >> /cron_logs.log 2>&1" > /etc/cron.d/create_progress \
     && chmod 0644 /etc/cron.d/create_progress \
     && crontab /etc/cron.d/create_progress
 
