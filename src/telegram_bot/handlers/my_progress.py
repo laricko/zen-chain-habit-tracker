@@ -1,4 +1,4 @@
-from telegram import KeyboardButton, ReplyKeyboardMarkup, Update
+from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -7,6 +7,7 @@ from telegram.ext import (
     filters,
 )
 
+from app.exceptions import EntityNotFound
 from app.schemas.progress import IncrementProgressDTO, UpdateProgressDTO
 from app.services.habit import delete_habit, get_habit_by_title_and_user_id
 from app.services.progress import (
@@ -16,7 +17,6 @@ from app.services.progress import (
     update_progress,
 )
 from app.services.user import get_user_by_telegram_chat_id
-from app.exceptions import EntityNotFound
 from telegram_bot.consts import BTN_PROGRESS, DEFAULT_MARKUP
 
 HABIT_DETAIL, EDIT_TODAY, CHOOSE_EDIT_ACTION, INCREMENT_VALUE, SET_VALUE, CONFIRM_DELETE = range(6)
@@ -27,6 +27,22 @@ BACK_BTN = "🔙 Back"
 DELETE_HABIT_BTN = "🗑 Delete Habit"
 CONFIRM_DELETE = "✅ Yes, delete"
 CANCEL_DELETE = "❌ Cancel"
+
+
+CHOOSE_ACTION_BTNS = [
+    [EDIT_TODAY_BTN],
+    [DELETE_HABIT_BTN],
+    [BACK_BTN]
+]
+EDIT_TODAY_PROGRESS_BTNS = [
+    [INCREMENT_BY_BTN],
+    [SET_NEW_VALUE_BTN],
+    [BACK_BTN]
+]
+DELETE_CONFORMATION_BTNS = [
+    [CONFIRM_DELETE],
+    [CANCEL_DELETE]
+]
 
 
 async def my_progress(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -68,11 +84,12 @@ async def show_habit_details(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return ConversationHandler.END
 
     user = context.user_data["user"]
+
     try:
         habit = get_habit_by_title_and_user_id(user_id=user.id, title=selected_title)
     except EntityNotFound:
         await update.message.reply_text(
-            "🚫 Please choose a habit from list.", 
+            "🚫 Please choose a habit from list.",
             reply_markup=ReplyKeyboardMarkup(context.user_data["habit_buttons"], resize_keyboard=True)
         )
         return HABIT_DETAIL
@@ -96,7 +113,7 @@ async def show_habit_details(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.message.reply_text(
         text=text,
         reply_markup=ReplyKeyboardMarkup(
-            [[EDIT_TODAY_BTN], [DELETE_HABIT_BTN], [BACK_BTN]],
+            CHOOSE_ACTION_BTNS,
             resize_keyboard=True
         ),
         parse_mode="MarkdownV2"
@@ -111,11 +128,7 @@ async def edit_today_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.message.reply_text(
         f"🛠 *Editing {context.user_data['habit'].title.capitalize()}* \\- *{today}*",
         reply_markup=ReplyKeyboardMarkup(
-            [
-                [KeyboardButton(INCREMENT_BY_BTN)],
-                [KeyboardButton(SET_NEW_VALUE_BTN)],
-                [KeyboardButton(BACK_BTN)]
-            ],
+            EDIT_TODAY_PROGRESS_BTNS,
             resize_keyboard=True
         ),
         parse_mode="MarkdownV2"
@@ -170,7 +183,7 @@ async def confirm_delete_habit(update: Update, context: ContextTypes.DEFAULT_TYP
     habit = context.user_data["habit"]
     await update.message.reply_text(
         f"⚠️ Are you sure you want to delete *{habit.title}*? This cannot be undone\\!",
-        reply_markup=ReplyKeyboardMarkup([["Yes, delete"], ["Cancel"]], resize_keyboard=True),
+        reply_markup=ReplyKeyboardMarkup(DELETE_CONFORMATION_BTNS, resize_keyboard=True),
         parse_mode="MarkdownV2"
     )
     return CONFIRM_DELETE
@@ -192,6 +205,14 @@ async def cancel_deletion(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ConversationHandler.END
 
 
+async def unknown_action(update: Update, context: ContextTypes.DEFAULT_TYPE, buttons, return_action):
+    await update.message.reply_text(
+        f"🚫 Please choose action from buttons.",
+        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+    )
+    return return_action
+
+
 habit_update_conv = ConversationHandler(
     entry_points=[
         MessageHandler(filters.Regex(f"^{BTN_PROGRESS[0]}$"), my_progress),
@@ -203,13 +224,21 @@ habit_update_conv = ConversationHandler(
         ],
         EDIT_TODAY: [
             MessageHandler(filters.Regex(f"^{EDIT_TODAY_BTN}$"), edit_today_handler),
-            MessageHandler(filters.Regex(f"^{DELETE_HABIT_BTN}$"), confirm_delete_habit),  # Handle delete button
-            MessageHandler(filters.Regex(f"^{BACK_BTN}$"), my_progress)
+            MessageHandler(filters.Regex(f"^{DELETE_HABIT_BTN}$"), confirm_delete_habit),
+            MessageHandler(filters.Regex(f"^{BACK_BTN}$"), my_progress),
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND,
+                lambda u, c: unknown_action(u, c, CHOOSE_ACTION_BTNS, EDIT_TODAY)
+            )
         ],
         CHOOSE_EDIT_ACTION: [
             MessageHandler(filters.Regex(f"^{INCREMENT_BY_BTN}$"), ask_increment),
             MessageHandler(filters.Regex(f"^{SET_NEW_VALUE_BTN}$"), ask_set_value),
-            MessageHandler(filters.Regex(f"^{BACK_BTN}$"), my_progress)
+            MessageHandler(filters.Regex(f"^{BACK_BTN}$"), my_progress),
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND,
+                lambda u, c: unknown_action(u, c, EDIT_TODAY_PROGRESS_BTNS, CHOOSE_EDIT_ACTION)
+            )
         ],
         INCREMENT_VALUE: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, increment_value_handler)
@@ -219,7 +248,11 @@ habit_update_conv = ConversationHandler(
         ],
         CONFIRM_DELETE: [
             MessageHandler(filters.Regex(f"^{CONFIRM_DELETE}$"), delete_habit_confirmed),
-            MessageHandler(filters.Regex(f"^{CANCEL_DELETE}$"), cancel_deletion)
+            MessageHandler(filters.Regex(f"^{CANCEL_DELETE}$"), cancel_deletion),
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND, lambda u,
+                c: unknown_action(u, c, DELETE_CONFORMATION_BTNS, CONFIRM_DELETE)
+            )
         ],
     },
     fallbacks=[
