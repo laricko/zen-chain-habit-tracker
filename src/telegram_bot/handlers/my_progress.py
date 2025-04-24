@@ -1,5 +1,3 @@
-from datetime import date
-
 from telegram import KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import (
     CommandHandler,
@@ -18,6 +16,7 @@ from app.services.progress import (
     update_progress,
 )
 from app.services.user import get_user_by_telegram_chat_id
+from app.exceptions import EntityNotFound
 from telegram_bot.consts import BTN_PROGRESS, DEFAULT_MARKUP
 
 HABIT_DETAIL, EDIT_TODAY, CHOOSE_EDIT_ACTION, INCREMENT_VALUE, SET_VALUE, CONFIRM_DELETE = range(6)
@@ -52,6 +51,7 @@ async def my_progress(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     buttons = [[title] for title in progresses_dto.habit_titles]
     buttons += [[BACK_BTN]]
+    context.user_data["habit_buttons"] = buttons
     await update.message.reply_text(
         text=text,
         reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
@@ -68,7 +68,12 @@ async def show_habit_details(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return ConversationHandler.END
 
     user = context.user_data["user"]
-    habit = get_habit_by_title_and_user_id(user_id=user.id, title=selected_title)
+    try:
+        habit = get_habit_by_title_and_user_id(user_id=user.id, title=selected_title)
+    except EntityNotFound:
+        await update.message.reply_text("🚫 Please choose a habit from list.", reply_markup=context.user_data["habit_buttons"])
+        return HABIT_DETAIL
+
     context.user_data["habit"] = habit
     progresses_dto = get_progresses_by_habit_id(habit_id=habit.id)
     current_progress = progresses_dto.progresses[0]
