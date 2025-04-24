@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.db import Habit
+from app.db import Habit, User
 
 
 class HabitRepository:
@@ -27,9 +27,9 @@ class HabitRepository:
         stmt = select(Habit).where(Habit.user_id == user_id)
         return self.session.execute(stmt).scalars().all()
 
-    def get_all(self) -> list[Habit]:
-        stmt = select(Habit)
-        return self.session.execute(stmt).scalars().all()
+    def get_all_habits_with_user_timezone(self) -> list[Habit]:
+        stmt = select(Habit, User.timezone).join(User, Habit.user_id == User.id)
+        return self.session.execute(stmt).all()
 
     def delete(self, id: UUID) -> None:
         stmt = delete(Habit).where(Habit.id == id)

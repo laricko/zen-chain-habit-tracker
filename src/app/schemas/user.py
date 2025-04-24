@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class CreateUserDTO(BaseModel):
     telegram_chat_id: int
-    timezone: str | None
+    timezone: str
 
 
 class UserOutDTO(CreateUserDTO):

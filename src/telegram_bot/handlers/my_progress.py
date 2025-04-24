@@ -21,13 +21,13 @@ from app.services.user import get_user_by_telegram_chat_id
 from telegram_bot.consts import BTN_PROGRESS, DEFAULT_MARKUP
 
 HABIT_DETAIL, EDIT_TODAY, CHOOSE_EDIT_ACTION, INCREMENT_VALUE, SET_VALUE, CONFIRM_DELETE = range(6)
-EDIT_TODAY_BTN = "Edit Today"
+EDIT_TODAY_BTN = "📝 Edit Today"
 INCREMENT_BY_BTN = "➕ Increment by"
 SET_NEW_VALUE_BTN = "✏️ Set a value"
-BACK_BTN = "Back"
+BACK_BTN = "🔙 Back"
 DELETE_HABIT_BTN = "🗑 Delete Habit"
-CONFIRM_DELETE = "Yes, delete"
-CANCEL_DELETE = "Cancel"
+CONFIRM_DELETE = "✅ Yes, delete"
+CANCEL_DELETE = "❌ Cancel"
 
 
 async def my_progress(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -148,7 +148,7 @@ async def set_value_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return SET_VALUE
 
     current_progress = context.user_data["current_progress"]
-    new_progress = update_progress(id=current_progress.id ,data=UpdateProgressDTO(current=value))
+    new_progress = update_progress(id=current_progress.id, data=UpdateProgressDTO(current=value))
     await update.message.reply_text(f"✅ Progress set to {new_progress.current}.", reply_markup=DEFAULT_MARKUP)
     return ConversationHandler.END
 

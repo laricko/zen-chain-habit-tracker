@@ -1,10 +1,11 @@
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from uuid import UUID
 
+from pytz import timezone as pytz_timezone
 from sqlalchemy.orm import Session
 
-from app.db import Progress
+from app.db import Habit, Progress
 from app.exceptions import EntityNotFound
 from app.repositories import HabitRepository, ProgressRepository, UserRepository
 from app.schemas import progress as progress_schemas
@@ -27,12 +28,12 @@ def create_progress_for_all_users(session: Session) -> None:
 
     last_progresses = progress_repository.get_all_users_last_progresses()
     last_progresses_habit_created_date_map = {progress.habit_id: progress.created_date for progress in last_progresses}
-    habits = habit_repository.get_all()
+    habits_timezone = habit_repository.get_all_habits_with_user_timezone()
     progresses_to_create = []
 
-    for habit in habits:
+    for habit, timezone in habits_timezone:
         last_date = last_progresses_habit_created_date_map.get(habit.id)
-        if _should_create_progress(habit, last_date):
+        if _should_create_progress(habit=habit, timezone=timezone, last_date=last_date):
             progresses_to_create.append(
                 Progress(user_id=habit.user_id, habit_id=habit.id, current=0, goal=habit.goal)
             )
@@ -115,14 +116,16 @@ def get_progresses_by_habit_id(habit_id: UUID, session: Session) -> progress_sch
     )
 
 
-def _should_create_progress(habit, last_date: date | None) -> bool:
+def _should_create_progress(habit: Habit, timezone: str, last_date: date | None) -> bool:
+    now_local = datetime.now(pytz_timezone(timezone)).date()
+
     if not last_date:
         return True
 
     if habit.frequency == "daily":
-        return last_date < date.today()
+        return last_date < now_local
     elif habit.frequency == "weekly":
-        return last_date <= date.today() - timedelta(weeks=1)
+        return last_date <= now_local - timedelta(weeks=1)
     elif habit.frequency == "monthly":
-        return last_date <= date.today().replace(day=1)
+        return last_date <= now_local.replace(day=1)
     return False

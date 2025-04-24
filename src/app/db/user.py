@@ -8,4 +8,4 @@ class User(Base):
     __tablename__ = "user"
 
     telegram_chat_id: Mapped[int] = mapped_column(unique=True)
-    timezone: Mapped[str] = mapped_column(String(31), nullable=True)
+    timezone: Mapped[str] = mapped_column(String(31))

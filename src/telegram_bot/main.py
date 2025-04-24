@@ -19,4 +19,6 @@ def create_app():
 
     app.add_handler(handlers.habit_update_conv)
 
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.unknown_message))
+
     app.run_polling()
