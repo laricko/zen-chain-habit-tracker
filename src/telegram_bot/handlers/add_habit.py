@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 
 from app.schemas.habit import CreateHabitDTO, HabitFrequency
-from app.services.habit import create_habit
+from app.services.habit import create_habit, get_habit_by_title_and_user_id
 from app.services.user import get_user_by_telegram_chat_id
 from telegram_bot.consts import BTN_ADD_HABIT, DEFAULT_MARKUP
 
@@ -22,7 +22,15 @@ async def start_add_habit(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def ask_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["title"] = update.message.text.strip()
+    context.user_data["title"] = title = update.message.text.strip()
+    telegram_user = update.effective_user
+    user = get_user_by_telegram_chat_id(telegram_chat_id=telegram_user.id)
+    context.user_data["user"] = user
+
+    if get_habit_by_title_and_user_id(title=title, user_id=user.id):
+        await update.message.reply_text("You already have this habit", reply_markup=reply_markup)
+        return TITLE
+
     reply_markup = ReplyKeyboardMarkup([["/cancel"]], resize_keyboard=True, one_time_keyboard=True)
     await update.message.reply_text("🎯 What is your goal (a number)?", reply_markup=reply_markup)
     return GOAL
@@ -47,9 +55,7 @@ async def save_habit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("⚠️ Please choose one of: daily, weekly, or monthly.")
         return FREQUENCY
 
-    telegram_user = update.effective_user
-    user = get_user_by_telegram_chat_id(telegram_chat_id=telegram_user.id)
-
+    user = context.user_data["user"]
     habit_data = CreateHabitDTO(
         user_id=user.id,
         title=context.user_data["title"],
